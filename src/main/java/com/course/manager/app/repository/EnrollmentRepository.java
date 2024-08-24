@@ -13,18 +13,30 @@ import com.course.manager.app.util.DatabaseConnection;
 public class EnrollmentRepository {
 
 	public String save(Enrollment enrollment) {
-		String sql = "INSERT INTO enrollments (studentId, courseCode) VALUES (?, ?)";
+		String checkSql = "SELECT * FROM enrollments WHERE studentId = ? AND courseCode = ?";
+		String insertSql = "INSERT INTO enrollments (studentId, courseCode) VALUES (?, ?)";
 
 		try (Connection conn = DatabaseConnection.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement(sql)) {
-			pstmt.setInt(1, enrollment.getStudentId());
-			pstmt.setString(2, enrollment.getCourseCode());
-			pstmt.executeUpdate();
-			return "Enrollment successful!";
-		} catch (SQLException e) {
-			if (e.getErrorCode() == 1062) { // Duplicate entry error code
-				return "Enrollment already exists!";
+				PreparedStatement checkPstmt = conn.prepareStatement(checkSql);
+				PreparedStatement insertPstmt = conn.prepareStatement(insertSql)) {
+
+			// Check if the student is already enrolled in the course
+			checkPstmt.setInt(1, enrollment.getStudentId());
+			checkPstmt.setString(2, enrollment.getCourseCode());
+			ResultSet rs = checkPstmt.executeQuery();
+
+			if (rs.next()) {
+				return "Student with ID " + enrollment.getStudentId() + " is already enrolled in course "
+						+ enrollment.getCourseCode() + "!";
 			}
+
+			// If not enrolled, proceed with the insertion
+			insertPstmt.setInt(1, enrollment.getStudentId());
+			insertPstmt.setString(2, enrollment.getCourseCode());
+			insertPstmt.executeUpdate();
+			return "Enrollment successful!";
+
+		} catch (SQLException e) {
 			e.printStackTrace();
 			return "Error occurred: " + e.getMessage();
 		}
@@ -127,5 +139,4 @@ public class EnrollmentRepository {
 		}
 		return enrollmentDetails;
 	}
-
 }

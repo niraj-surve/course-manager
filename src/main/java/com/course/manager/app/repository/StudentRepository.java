@@ -14,15 +14,28 @@ import com.course.manager.app.util.DatabaseConnection;
 public class StudentRepository {
 
 	public String save(Student student) {
-		String sql = "INSERT INTO students (name, email, department) VALUES (?, ?, ?)";
+		String checkSql = "SELECT * FROM students WHERE email = ?";
+		String insertSql = "INSERT INTO students (name, email, department) VALUES (?, ?, ?)";
 
 		try (Connection conn = DatabaseConnection.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement(sql)) {
-			pstmt.setString(1, student.getName());
-			pstmt.setString(2, student.getEmail());
-			pstmt.setString(3, student.getDepartment());
-			pstmt.executeUpdate();
+				PreparedStatement checkPstmt = conn.prepareStatement(checkSql);
+				PreparedStatement insertPstmt = conn.prepareStatement(insertSql)) {
+
+			// Check if student already exists
+			checkPstmt.setString(1, student.getEmail());
+			ResultSet rs = checkPstmt.executeQuery();
+
+			if (rs.next()) {
+				return "Student with email " + student.getEmail() + " already exists!";
+			}
+
+			// If student does not exist, insert the new student
+			insertPstmt.setString(1, student.getName());
+			insertPstmt.setString(2, student.getEmail());
+			insertPstmt.setString(3, student.getDepartment());
+			insertPstmt.executeUpdate();
 			return "Student with name " + student.getName() + " added successfully!";
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return "Error occurred: " + e.getMessage();
